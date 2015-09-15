@@ -15,7 +15,7 @@ import de.tavendo.autobahn.WebSocketException;
 import de.tavendo.autobahn.WebSocketOptions;
 import de.tavendo.autobahn.WebSocketReader;
 import de.tavendo.autobahn.WebSocketWriter;
-import de.tavendo.autobahn.WebSocket.WebSocketConnectionObserver;
+//import de.tavendo.autobahn.WebSocket.WebSocketConnectionObserver;
 import de.tavendo.autobahn.WebSocket.WebSocketConnectionObserver.WebSocketCloseNotification;
 import de.tavendo.autobahn.WebSocketMessage.BinaryMessage;
 import de.tavendo.autobahn.WebSocketMessage.ClientHandshake;
@@ -89,6 +89,7 @@ public class WebSocketConnection implements WebSocket {
 	}
 
 	if(this.mWebSocketWriter != null) {
+		Log.i(TAG, "failConnection mWebSocketWriter quit");
 	    this.mWebSocketWriter.forward(new Quit());
 
 	    try {
@@ -146,13 +147,49 @@ public class WebSocketConnection implements WebSocket {
     }
 
     public void disconnect() {
-	if(this.mWebSocketWriter != null && this.mWebSocketWriter.isAlive()) {
-	    this.mWebSocketWriter.forward(new Close());
-	} else {
-	    Log.d(TAG, "Could not send WebSocket Close .. writer already null");
-	}
+    	Log.i(TAG, "ws disconnect");
+    	
+		if(this.mWebSocketWriter != null && this.mWebSocketWriter.isAlive()) {
+	    	Log.i(TAG, "mWebSocketWriter quit");
 
-	this.mPreviousConnection = false;
+			
+		    this.mWebSocketWriter.forward(new Close());
+		    
+		    //TODO: should wait for close complete
+		    //TODO: wait for a few seconds
+		    //mWebSocketWriter.forward(new Quit());
+		    mWebSocketWriter.quit();
+		    mWebSocketWriter = null;
+		} else {
+		    Log.e(TAG, "Could not send WebSocket Close .. writer already null");
+		}
+	
+
+		if(this.mWebSocketReader != null && this.mWebSocketReader.isAlive()) {
+	    	Log.i(TAG, "mWebSocketReader quit");
+
+		    mWebSocketReader.quit();
+		    mWebSocketReader = null;
+		} else {
+		    Log.e(TAG, "mWebSocketReader already null");
+		}		
+		
+		
+		if (mSocketThread != null && mSocketThread.isAlive()){
+	    	Log.i(TAG, "mSocketThread quit");
+			
+			mSocketThread.getHandler().post(new Runnable() {
+				public void run() {
+				    WebSocketConnection.this.mSocketThread.stopConnection();
+				}
+			});
+			mSocketThread = null;
+		}else{
+	    	Log.e(TAG, "mSocketThread already quit");
+		}
+		
+		this.mPreviousConnection = false;
+		
     }
 
     public boolean reconnect() {
@@ -180,7 +217,8 @@ public class WebSocketConnection implements WebSocket {
 		public void run() {
 		    WebSocketConnection.this.mSocketThread.startConnection();
 		}
-	    });
+	});
+	
 	e = this.mSocketThread;
 	synchronized(this.mSocketThread) {
 	    try {
@@ -357,14 +395,18 @@ public class WebSocketConnection implements WebSocket {
 	}
 
 	public void run() {
-	    Looper.prepare();
-	    this.mHandler = new Handler();
-	    synchronized(this) {
-		this.notifyAll();
-	    }
-
-	    Looper.loop();
-	    Log.d(WebSocketConnection.TAG, "SocketThread exited.");
+		try{
+		    Looper.prepare();
+		    this.mHandler = new Handler();
+		    synchronized(this) {
+			this.notifyAll();
+		    }
+	
+		    Looper.loop();
+		    Log.d(WebSocketConnection.TAG, "SocketThread exited.");
+		}catch(Exception e){
+			Log.e(TAG, "SocketThread Exception: " + e.toString());
+		}
 	}
 
 	public void startConnection() {

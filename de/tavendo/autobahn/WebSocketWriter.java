@@ -22,6 +22,7 @@ import de.tavendo.autobahn.WebSocketMessage.Pong;
 import de.tavendo.autobahn.WebSocketMessage.Quit;
 import de.tavendo.autobahn.WebSocketMessage.RawTextMessage;
 import de.tavendo.autobahn.WebSocketMessage.TextMessage;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
@@ -249,6 +250,7 @@ public class WebSocketWriter extends Thread {
 	} else if(msg instanceof ClientHandshake) {
 	    this.sendClientHandshake((ClientHandshake)msg);
 	} else if(msg instanceof Quit) {
+		
 	    Looper.myLooper().quit();
 	    Log.d(TAG, "WebSocket writer ended.");
 	} else {
@@ -298,6 +300,16 @@ public class WebSocketWriter extends Thread {
 	Looper.loop();
     }
 
+    public void quit(){
+    	mHandler.post(new Runnable() {
+    		public void run() {
+    			Log.i(TAG,"WebSocketWriter quit");
+    			Looper.myLooper().quit();
+    			//Looper.myLooper().quitSafely();
+    		}
+    	});
+    }
+    
     private static class ThreadHandler extends Handler {
 	private final WeakReference<WebSocketWriter> mWebSocketWriterReference;
 
@@ -312,5 +324,9 @@ public class WebSocketWriter extends Thread {
 	    }
 
 	}
+    }
+    
+    protected void finalize( ) throws Throwable{
+    	Log.d(TAG, "WebSocketWriter finalize");
     }
 }

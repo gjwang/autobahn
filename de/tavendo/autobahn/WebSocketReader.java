@@ -391,17 +391,30 @@ public class WebSocketReader extends Thread {
     }
 
     private boolean consumeData() throws Exception {
-	switch($SWITCH_TABLE$de$tavendo$autobahn$WebSocketReader$ReaderState()[this.mState.ordinal()]) {
-	case 1:
-	    return false;
-	case 2:
-	    return this.processHandshake();
-	case 3:
-	case 4:
-	    return this.processData();
-	default:
-	    return false;
-	}
+//	switch($SWITCH_TABLE$de$tavendo$autobahn$WebSocketReader$ReaderState()[this.mState.ordinal()]) {
+//	case 1:
+//	    return false;
+//	case 2:
+//	    return this.processHandshake();
+//	case 3:
+//	case 4:
+//	    return this.processData();
+//	default:
+//	    return false;
+//	}
+    	
+    	switch(this.mState) {
+    	case STATE_CLOSED:
+    	    return false;
+    	case STATE_CONNECTING:
+    	    return this.processHandshake();
+    	case STATE_CLOSING:
+    	case STATE_OPEN:
+    	    return this.processData();
+    	default:
+    	    return false;
+    	}
+    	
     }
 
     public void run() {
